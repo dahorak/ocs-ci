@@ -667,6 +667,7 @@ def download_file(url, filename):
         filename (str): Name of the file to write the download to
 
     """
+    log.debug(f"Download '{url}' to '{filename}'.")
     with open(filename, "wb") as f:
         r = requests.get(url)
         f.write(r.content)
@@ -747,7 +748,7 @@ def get_openshift_installer(
         log.debug("Installer exists ({installer_binary_path}), skipping download.")
         # TODO: check installer version
     else:
-        log.info("Downloading openshift installer")
+        log.info(f"Downloading openshift installer ({version}).")
         prepare_bin_dir()
         # record current working directory and switch to BIN_DIR
         previous_dir = os.getcwd()
@@ -787,7 +788,7 @@ def get_openshift_client(
         log.debug("Client exists ({client_binary_path}), skipping download.")
         # TODO: check client version
     else:
-        log.info("Downloading openshift client")
+        log.info(f"Downloading openshift client ({version}).")
         prepare_bin_dir()
         # record current working directory and switch to BIN_DIR
         previous_dir = os.getcwd()
