@@ -67,6 +67,7 @@ class TestDeployment(EcosystemTest):
         )
         # Download client
         get_openshift_client()
+        return
 
         # Deploy cluster
         log.info("Deploying cluster")

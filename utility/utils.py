@@ -747,6 +747,8 @@ def get_openshift_installer(
     if os.path.isfile(installer_binary_path):
         log.debug("Installer exists ({installer_binary_path}), skipping download.")
         # TODO: check installer version
+        version_str = run_cmd(f"{installer_binary_path} version")
+        log.info(version_str)
     else:
         log.info(f"Downloading openshift installer ({version}).")
         prepare_bin_dir()
