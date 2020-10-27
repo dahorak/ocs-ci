@@ -744,7 +744,7 @@ class AWSUPI(AWSBase):
         self.aws.delete_cloudformation_stacks(stack_names)
 
 
-class AWSUPIFlexy(AWSBase):
+class AWSUPIFlexy(AWSUPI):
     """
     All the functionalities related to AWS UPI Flexy deployment
     lives here
