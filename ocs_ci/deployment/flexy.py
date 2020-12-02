@@ -312,10 +312,11 @@ class FlexyBase(object):
         rsync_cmd = f"rsync -av {self.flexy_host_dir} {self.cluster_path}/"
         run_cmd(rsync_cmd)
 
-        # create symlink to auth directory
-        cluster_path_auth = os.path.join(self.cluster_path, "auth")
-        if not os.path.exists(cluster_path_auth):
-            os.symlink("flexy-dir/flexy/workdir/install-dir/auth", cluster_path_auth)
+        # mirror install-dir to cluster path (auth directory, metadata.json
+        # file and other files)
+        install_dir = os.path.join(self.flexy_host_dir, "flexy/workdir/install-dir/")
+        rsync_cmd = f"rsync -av {install_dir} {self.cluster_path}/"
+        run_cmd(rsync_cmd)
 
     def flexy_post_processing(self):
         """
