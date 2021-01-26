@@ -18,6 +18,7 @@ from ocs_ci.utility.utils import (
     get_image_with_digest,
     get_latest_ds_olm_tag,
     get_url_content,
+    load_auth_config,
     login_to_mirror_registry,
     prepare_bin_dir,
     prepare_customized_pull_secret,
@@ -84,7 +85,20 @@ def prepare_disconnected_ocs_deployment():
         opm_releases_api_url = (
             f"https://api.github.com/repos/{opm_owner_repo}/releases/{opm_release_tag}"
         )
-        release_data = json.loads(get_url_content(opm_releases_api_url))
+        # if conf.AUTH.get("github"):
+        #    github_auth = (
+        #        conf.AUTH["github"].get("username"),
+        #        conf.AUTH["github"].get("username"),
+        #    )
+        auth_config = load_auth_config()
+        if auth_config.get("github"):
+            github_auth = (
+                auth_config["github"].get("username"),
+                auth_config["github"].get("username"),
+            )
+        else:
+            github_auth = None
+        release_data = json.loads(get_url_content(opm_releases_api_url, github_auth))
 
         if platform.system() == "Darwin":
             opm_asset_name = "darwin-amd64-opm"
