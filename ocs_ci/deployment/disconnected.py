@@ -98,7 +98,9 @@ def prepare_disconnected_ocs_deployment():
             )
         else:
             github_auth = None
-        release_data = json.loads(get_url_content(opm_releases_api_url, github_auth))
+        release_data = json.loads(
+            get_url_content(opm_releases_api_url, auth=github_auth)
+        )
 
         if platform.system() == "Darwin":
             opm_asset_name = "darwin-amd64-opm"
