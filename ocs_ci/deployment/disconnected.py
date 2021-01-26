@@ -2,18 +2,24 @@
 This module contains functionality required for disconnected installation.
 """
 
+import json
 import logging
 import os
+import platform
 import yaml
 
 from ocs_ci.framework import config
 from ocs_ci.ocs import constants
+from ocs_ci.ocs.exceptions import NotFoundError, UnsupportedOSType
 from ocs_ci.utility.utils import (
     create_directory_path,
+    download_file,
     exec_cmd,
     get_image_with_digest,
     get_latest_ds_olm_tag,
+    get_url_content,
     login_to_mirror_registry,
+    prepare_bin_dir,
     prepare_customized_pull_secret,
     wait_for_machineconfigpool_status,
 )
@@ -60,10 +66,46 @@ def prepare_disconnected_ocs_deployment():
     - mirror related images to mirror registry
     - create imageContentSourcePolicy for the mirrored images
     - disable the default OperatorSources
+
+    Returns:
+        str: OCS registry image prepared for disconnected installation (with
+            sha256 digest)
+
     """
 
     logger.info("Prepare for disconnected OCS installation")
     if config.DEPLOYMENT.get("live_deployment"):
+
+        # get opm tool
+        opm_owner_repo = "operator-framework/operator-registry"
+        opm_release_tag = "latest"
+        if opm_release_tag != "latest":
+            opm_release_tag = f"tags/{opm_release_tag}"
+        opm_releases_api_url = (
+            f"https://api.github.com/repos/{opm_owner_repo}/releases/{opm_release_tag}"
+        )
+        release_data = json.loads(get_url_content(opm_releases_api_url))
+
+        if platform.system() == "Darwin":
+            opm_asset_name = "darwin-amd64-opm"
+        elif platform.system() == "Linux":
+            opm_asset_name = "linux-amd64-opm"
+        else:
+            raise UnsupportedOSType
+
+        for asset in release_data["assets"]:
+            if asset["name"] == opm_asset_name:
+                opm_download_url = asset["browser_download_url"]
+        else:
+            raise NotFoundError(
+                f"opm binary for selected type {opm_asset_name} was not found"
+            )
+
+        prepare_bin_dir()
+        bin_dir = None
+        bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
+        download_file(opm_download_url, os.path.join(bin_dir, "opm"))
+
         raise NotImplementedError(
             "Disconnected installation from live is not implemented!"
         )
