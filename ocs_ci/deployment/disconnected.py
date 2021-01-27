@@ -87,10 +87,18 @@ def prepare_disconnected_ocs_deployment():
         if config.AUTH.get("github"):
             github_auth = (
                 config.AUTH["github"].get("username"),
-                config.AUTH["github"].get("username"),
+                config.AUTH["github"].get("token"),
             )
+            logger.debug(f"Using github authentication (user: {github_auth[0]})")
         else:
             github_auth = None
+            logger.warning(
+                "Github credentials are not provided in data/auth.yaml file. "
+                "You might encounter issues with accessing github api as it "
+                "have very strict rate limit for unauthenticated requests "
+                "(60 requests per hour). Please check docs/getting_started.md "
+                "file to find how to configure github authentication."
+            )
         release_data = json.loads(
             get_url_content(opm_releases_api_url, auth=github_auth)
         )
