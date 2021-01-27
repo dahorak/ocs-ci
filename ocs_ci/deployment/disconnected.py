@@ -113,6 +113,7 @@ def prepare_disconnected_ocs_deployment():
         for asset in release_data["assets"]:
             if asset["name"] == opm_asset_name:
                 opm_download_url = asset["browser_download_url"]
+                break
         else:
             raise NotFoundError(
                 f"opm binary for selected type {opm_asset_name} was not found"
