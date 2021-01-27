@@ -72,6 +72,18 @@ def prepare_disconnected_ocs_deployment():
     if config.DEPLOYMENT.get("live_deployment"):
         get_opm_tool()
 
+        # ##################################################
+        # prune an index image
+        pull_secret_path = os.path.join(constants.TOP_DIR, "data", "pull-secret")
+        cmd = (
+            "opm index prune -f registry.redhat.io/redhat/redhat-operator-index:v4.6 "
+            "-p elasticsearch-operator,local-storage-operator,ocs-operator "
+            "-t ${BASTION_HOST}:5000/olm-mirror/redhat-operator-index:v4.6"
+        )
+        os.environ["REGISTRY_AUTH_FILE"] = pull_secret_path
+        logger.info(exec_cmd(cmd))
+        # ##################################################
+
         raise NotImplementedError(
             "Disconnected installation from live is not implemented!"
         )
