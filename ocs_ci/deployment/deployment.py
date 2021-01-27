@@ -756,7 +756,7 @@ class Deployment(object):
         try:
             ceph_cluster.get().get("items")[0]
             logger.warning("OCS cluster already exists")
-            return
+            # return
         except (IndexError, CommandFailed):
             logger.info("Running OCS basic installation")
 
