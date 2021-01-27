@@ -123,6 +123,8 @@ def prepare_disconnected_ocs_deployment():
         bin_dir = None
         bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
         download_file(opm_download_url, os.path.join(bin_dir, "opm"))
+        cmd = f"chmod +x {os.path.join(bin_dir, 'opm')}"
+        exec_cmd(cmd)
 
         raise NotImplementedError(
             "Disconnected installation from live is not implemented!"
