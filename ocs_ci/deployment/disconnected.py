@@ -82,9 +82,9 @@ def prepare_disconnected_ocs_deployment():
 
         try:
             opm_version = exec_cmd("opm version")
-            logger.info(f"opm tool is available: {opm_version.stdout}")
+            logger.info(f"opm tool is available: {opm_version.stdout.decode('utf-8')}")
         except (CommandFailed, FileNotFoundError):
-            logger.info("installing opm tool")
+            logger.info("opm tool not available, installing it")
             opm_owner_repo = "operator-framework/operator-registry"
             opm_release_tag = "latest"
             if opm_release_tag != "latest":
