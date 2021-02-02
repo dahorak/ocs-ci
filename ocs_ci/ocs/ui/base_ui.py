@@ -348,9 +348,24 @@ def login_ui():
             chrome_options.add_argument("--headless")
 
         chrome_browser_type = ocsci_config.UI_SELENIUM.get("chrome_type")
+
+        service_args = []
+        if ocsci_config.UI_SELENIUM.get("enable_webdriver_logging", False):
+            webdriver_log_file = os.path.join(
+                os.path.expanduser(ocsci_config.RUN["log_dir"]),
+                f"webdriver_{ocsci_config.RUN['run_id']}.log",
+            )
+            service_args = [
+                "--verbose",
+                f"--log-path={webdriver_log_file}",
+                "--readable-timestamp",
+                "--enable-chrome-logs",
+            ]
+
         driver = webdriver.Chrome(
             ChromeDriverManager(chrome_type=chrome_browser_type).install(),
             chrome_options=chrome_options,
+            service_args=service_args,
         )
     else:
         raise ValueError(f"Not Support on {browser}")
