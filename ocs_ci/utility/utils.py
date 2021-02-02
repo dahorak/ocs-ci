@@ -11,6 +11,7 @@ import string
 import subprocess
 import time
 import traceback
+import stat
 from copy import deepcopy
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -624,6 +625,53 @@ def get_openshift_installer(
     log.info(f"OpenShift Installer version: {installer_version}")
 
     return installer_binary_path
+
+
+def get_ocm_cli(
+    version=None,
+    bin_dir=None,
+    force_download=False,
+):
+    """
+    Download the OCM binary, if not already present.
+    Update env. PATH and get path of the OCM binary.
+
+    Args:
+        version (str): Version of the OCM to download
+        bin_dir (str): Path to bin directory (default: config.RUN['bin_dir'])
+        force_download (bool): Force OCM download even if already present
+
+    Returns:
+        str: Path to the OCM binary
+
+    """
+    bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
+    ocm_filename = "ocm"
+    ocm_binary_path = os.path.join(bin_dir, ocm_filename)
+    if os.path.isfile(ocm_binary_path) and force_download:
+        delete_file(ocm_binary_path)
+    if os.path.isfile(ocm_binary_path):
+        log.debug(f"ocm exists ({ocm_binary_path}), skipping download.")
+    else:
+        log.info(f"Downloading ocm cli ({version}).")
+        prepare_bin_dir()
+        # record current working directory and switch to BIN_DIR
+        previous_dir = os.getcwd()
+        os.chdir(bin_dir)
+        url = f"https://github.com/openshift-online/ocm-cli/releases/download/v{version}/ocm-linux-amd64"
+        download_file(url, ocm_filename)
+        # return to the previous working directory
+        os.chdir(previous_dir)
+
+    current_file_permissions = os.stat(ocm_binary_path)
+    os.chmod(
+        ocm_binary_path,
+        current_file_permissions.st_mode | stat.S_IEXEC,
+    )
+    ocm_version = run_cmd(f"{ocm_binary_path} version")
+    log.info(f"OCM version: {ocm_version}")
+
+    return ocm_binary_path
 
 
 def get_openshift_client(
@@ -3038,18 +3086,19 @@ def apply_ssd_tuning_azure():
     default_config = ct_pod.exec_ceph_cmd("ceph config dump")
     log.info(f"Initial ceph config dump output: {default_config}")
     config_options = [
-        "osd_op_num_threads_per_shard_ssd 2",
-        "osd_op_num_shards_ssd 8",
-        "osd_recovery_sleep_ssd 0",
-        "osd_snap_trim_sleep_ssd 0",
-        "osd_delete_sleep_ssd 0",
-        "bluestore_min_alloc_size_ssd 4K",
-        "bluestore_prefer_deferred_size_ssd 0",
-        "bluestore_compression_min_blob_size_ssd 8K",
-        "bluestore_compression_max_blob_size_ssd 64K",
-        "bluestore_cache_size_ssd 3G",
-        "bluestore_throttle_cost_per_io_ssd 4000",
-        "bluestore_deferred_batch_ops_ssd 16",
+        "osd_op_num_threads_per_shard 2",
+        "osd_op_num_shards 8",
+        "osd_recovery_sleep 0",
+        "osd_snap_trim_sleep 0",
+        "osd_delete_sleep 0",
+        "bluestore_min_alloc_size 4K",
+        "bluestore_prefer_deferred_size 0",
+        "bluestore_compression_min_blob_size 8K",
+        "bluestore_compression_max_blob_size 64K",
+        "bluestore_max_blob_size 64K",
+        "bluestore_cache_size 3G",
+        "bluestore_throttle_cost_per_io 4000",
+        "bluestore_deferred_batch_ops 16",
     ]
     for config_option in config_options:
         ct_pod.exec_ceph_cmd(f"ceph config set osd {config_option}")
