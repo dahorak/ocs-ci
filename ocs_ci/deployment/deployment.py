@@ -553,6 +553,8 @@ class Deployment(object):
                 replace_to=config.DEPLOYMENT["csv_change_to"],
             )
 
+        raise Exception("WORKAROUND: aborting before StorageCluster creation")
+
         # create custom storage class for StorageCluster CR if necessary
         if self.CUSTOM_STORAGE_CLASS_PATH is not None:
             with open(self.CUSTOM_STORAGE_CLASS_PATH, "r") as custom_sc_fo:
