@@ -488,6 +488,7 @@ class Deployment(object):
                 create_ocs_secret(constants.MARKETPLACE_NAMESPACE)
         if not live_deployment:
             self.create_ocs_operator_source(image)
+        raise Exception("WORKAROUND: aborting before subscribe_ocs()")
         self.subscribe_ocs()
         operator_selector = get_selector_for_ocs_operator()
         subscription_plan_approval = config.DEPLOYMENT.get("subscription_plan_approval")
