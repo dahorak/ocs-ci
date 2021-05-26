@@ -102,17 +102,14 @@ def prepare_disconnected_ocs_deployment(upgrade=False):
         f"{constants.MIRRORED_INDEX_IMAGE_NAME}:v{ocp_version}"
     )
 
-    required_packages = constants.DISCON_CL_REQUIRED_PACKAGES
-    if config.DEPLOYMENT.get("live_deployment"):
-        required_packages.append(constants.OCS_OPERATOR_PACKAGE)
     # prune an index image
     logger.info(
         f"Prune index image {index_image} -> {mirrored_index_image} "
-        f"(packages: {', '.join(required_packages)})"
+        f"(packages: {', '.join(constants.DISCON_CL_REQUIRED_PACKAGES)})"
     )
     cmd = (
         f"opm index prune -f {index_image} "
-        f"-p {','.join(required_packages)} "
+        f"-p {','.join(constants.DISCON_CL_REQUIRED_PACKAGES)} "
         f"-t {mirrored_index_image}"
     )
     # opm tool doesn't have --authfile parameter, we have to supply auth
