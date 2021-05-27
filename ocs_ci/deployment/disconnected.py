@@ -163,7 +163,9 @@ def prepare_disconnected_ocs_deployment(upgrade=False):
     catalog_source_data["metadata"]["labels"].pop("ocs-operator-internal", None)
 
     templating.dump_data_to_temp_yaml(catalog_source_data, catalog_source_manifest.name)
-    exec_cmd(f"oc apply -f {catalog_source_manifest.name}")
+    exec_cmd(
+        f"oc {'replace' if upgrade else 'apply'} -f {catalog_source_manifest.name}"
+    )
     catalog_source = CatalogSource(
         resource_name="redhat-operators",
         namespace=constants.MARKETPLACE_NAMESPACE,
