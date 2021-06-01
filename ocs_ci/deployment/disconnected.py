@@ -5,6 +5,7 @@ This module contains functionality required for disconnected installation.
 import logging
 import os
 import tempfile
+import time
 
 import yaml
 
@@ -149,6 +150,9 @@ def prepare_disconnected_ocs_deployment(upgrade=False):
         "imageContentSourcePolicy.yaml",
     )
     exec_cmd(f"oc apply -f {icsp_file}")
+    logger.info("Sleeping for 60 sec to start update machineconfigpool status")
+    time.sleep(60)
+    wait_for_machineconfigpool_status("all")
 
     # create redhat-operators CatalogSource
     catalog_source_data = templating.load_yaml(constants.CATALOG_SOURCE_YAML)
@@ -174,8 +178,8 @@ def prepare_disconnected_ocs_deployment(upgrade=False):
     catalog_source.wait_for_state("READY")
 
     if config.DEPLOYMENT.get("live_deployment"):
-        # ensure that newly created imageContentSourcePolicy is applied on all nodes
-        wait_for_machineconfigpool_status("all")
+        # deployment from live can continue as normal now (ocs-operator images
+        # are already mirrored as part of redhat-operators)
         return
 
     if upgrade:
@@ -282,6 +286,8 @@ def prepare_disconnected_ocs_deployment(upgrade=False):
         )
 
     # wait for newly created imageContentSourcePolicy is applied on all nodes
+    logger.info("Sleeping for 60 sec to start update machineconfigpool status")
+    time.sleep(60)
     wait_for_machineconfigpool_status("all")
 
     return mirrored_ocs_registry_image
