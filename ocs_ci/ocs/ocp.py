@@ -412,6 +412,21 @@ class OCP(object):
         """
         command = f"oc new-project {project_name}"
         if f'Now using project "{project_name}"' in run_cmd(f"{command}"):
+            # if on Proxy environment and if ENV_DATA["client_http_proxy"] is
+            # defined, update kubeconfig file with proxy-url parameter to redirect
+            # client access through proxy server (this parameter is deleted by
+            # `oc new-project ...` command).
+            # (see also: https://bugzilla.redhat.com/show_bug.cgi?id=1925534)
+            if config.DEPLOYMENT.get("proxy") and config.ENV_DATA.get(
+                "client_http_proxy"
+            ):
+                kubeconfig = os.getenv("KUBECONFIG")
+                if not kubeconfig or not os.path.exists(kubeconfig):
+                    kubeconfig = os.path.join(
+                        config.ENV_DATA["cluster_path"],
+                        config.RUN.get("kubeconfig_location"),
+                    )
+                update_kubeconfig_with_proxy_url_for_client(kubeconfig)
             return True
         return False
 
@@ -1122,6 +1137,21 @@ def switch_to_project(project_name):
         f'Already on project "{project_name}"',
     ]
     ret = run_cmd(cmd)
+
+    # if on Proxy environment and if ENV_DATA["client_http_proxy"] is
+    # defined, update kubeconfig file with proxy-url parameter to redirect
+    # client access through proxy server (this parameter is deleted by
+    # `oc project ...` command).
+    # (see also: https://bugzilla.redhat.com/show_bug.cgi?id=1925534)
+    if config.DEPLOYMENT.get("proxy") and config.ENV_DATA.get("client_http_proxy"):
+        kubeconfig = os.getenv("KUBECONFIG")
+        if not kubeconfig or not os.path.exists(kubeconfig):
+            kubeconfig = os.path.join(
+                config.ENV_DATA["cluster_path"],
+                config.RUN.get("kubeconfig_location"),
+            )
+        update_kubeconfig_with_proxy_url_for_client(kubeconfig)
+
     if any(msg in ret for msg in success_msgs):
         return True
     return False
