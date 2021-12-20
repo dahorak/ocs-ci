@@ -1,0 +1,3 @@
+---
+ENV_DATA:
+  flexy_img_url: "docker-registry.upshift.redhat.com/flexy/ocp4:v1.10"
