@@ -76,6 +76,7 @@ setup(
         "mysql-connector-python==8.0.27",
         "pytest-repeat",
         "pexpect>=4.8.0",
+        "pytest-profiling",
     ],
     entry_points={
         "console_scripts": [
