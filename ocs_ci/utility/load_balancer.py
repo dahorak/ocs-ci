@@ -5,6 +5,7 @@ Module that contains all operations related to load balancer in a cluster
 import errno
 import logging
 import os
+import time
 
 from ocs_ci.framework import config
 from ocs_ci.ocs import constants
@@ -105,6 +106,14 @@ class LoadBalancer(object):
             nodes (list): List of nodes to update in haproxy
 
         """
+        check_file = "/tmp/pause-run-ci"
+        logger.warning("########### PAUSING OCS-CI EXECUTION 1 ###############")
+        logger.info(f"## to continue remove {check_file} ##")
+        with open(check_file, "w"):
+            pass
+        while os.path.exists(check_file):
+            logger.info(f"...waiting...  (remove {check_file})")
+            time.sleep(60)
         ports = ["80", "443"]
         for port in ports:
             for node in nodes:
@@ -113,6 +122,13 @@ class LoadBalancer(object):
                     f"{node} {node}:{port} check\\n&/' {constants.HAPROXY_LOCATION}"
                 )
                 self.lb.exec_cmd(cmd)
+        logger.warning("########### PAUSING OCS-CI EXECUTION 2 ###############")
+        logger.info(f"## to continue remove {check_file} ##")
+        with open(check_file, "w"):
+            pass
+        while os.path.exists(check_file):
+            logger.info(f"...waiting...  (remove {check_file})")
+            time.sleep(60)
 
     def rename_haproxy(self):
         """
