@@ -87,6 +87,7 @@ setup(
         "protobuf==4.21.7",
         "ping3>=4.0.3",
         "psutil==5.9.0",
+        "pytest-xdist",
     ],
     entry_points={
         "console_scripts": [
