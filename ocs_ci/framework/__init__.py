@@ -226,7 +226,9 @@ class MultiClusterConfig:
     def switch_default_cluster_ctx(self):
         # We can check any conf for default_cluster_context_index
         # because its a common arg
-        self.switch_ctx(self.cluster_ctx.ENV_DATA["default_cluster_context_index"])
+        self.switch_ctx(
+            self.cluster_ctx.ENV_DATA.get("default_cluster_context_index", 0)
+        )
 
     def get_provider_index(self):
         """
