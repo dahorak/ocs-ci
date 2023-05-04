@@ -44,6 +44,8 @@ import logging
 
 # from pytest_check import check
 
+from concurrent.futures import ThreadPoolExecutor
+
 from ocs_ci.framework.testlib import (
     ManageTest,
     acceptance,
@@ -135,61 +137,76 @@ class TestPvcAcceptance(ManageTest):
             if not variant.get("skip")
         ]
 
-        for test_variant in test_variants:
-            test_variant.setup()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                p.submit(test_variant.setup)
 
-        for test_variant in test_variants:
-            test_variant.create_pvc()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                p.submit(test_variant.create_pvc)
 
-        for test_variant in test_variants:
-            test_variant.create_pods()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                p.submit(test_variant.create_pods)
 
-        for test_variant in test_variants:
-            test_variant.run_io_on_first_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                p.submit(test_variant.run_io_on_first_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWX:
-                test_variant.run_io_on_second_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWX:
+                    p.submit(test_variant.run_io_on_second_pod)
 
-        for test_variant in test_variants:
-            test_variant.get_iops_from_first_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                p.submit(test_variant.get_iops_from_first_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWX:
-                test_variant.get_iops_from_second_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWX:
+                    p.submit(test_variant.get_iops_from_second_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWO:
-                test_variant.check_pod_state_containercreating()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWO:
+                    p.submit(test_variant.check_pod_state_containercreating)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWO:
-                test_variant.delete_first_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWO:
+                    p.submit(test_variant.delete_first_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWO:
-                test_variant.check_pod_state_running()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWO:
+                    p.submit(test_variant.check_pod_state_running)
 
-        for test_variant in test_variants:
-            test_variant.verify_data_on_second_pod()
-            if test_variant.access_mode == constants.ACCESS_MODE_RWX:
-                test_variant.verify_data_on_first_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                p.submit(test_variant.verify_data_on_second_pod)
+                if test_variant.access_mode == constants.ACCESS_MODE_RWX:
+                    p.submit(test_variant.verify_data_on_first_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWO:
-                test_variant.run_io_on_second_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWO:
+                    p.submit(test_variant.run_io_on_second_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWO:
-                test_variant.get_iops_from_second_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWO:
+                    p.submit(test_variant.get_iops_from_second_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWO:
-                test_variant.verify_data_on_second_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWO:
+                    p.submit(test_variant.verify_data_on_second_pod)
 
-        for test_variant in test_variants:
-            if test_variant.access_mode == constants.ACCESS_MODE_RWX:
-                test_variant.verify_data_is_mutable_from_any_pod()
+        with ThreadPoolExecutor() as p:
+            for test_variant in test_variants:
+                if test_variant.access_mode == constants.ACCESS_MODE_RWX:
+                    p.submit(test_variant.verify_data_is_mutable_from_any_pod)
 
         self.verify_access_token_notin_odf_pod_logs()
 
