@@ -16,19 +16,19 @@ Let's follow the following guidelines for the Core Libraries and Test Scripts
     reside in utils and/or should be carefully reviewed to check if
     they can actually be methods.
 * test_scripts will reside in the `tests/` folder under the correct subsection
- and will follow [pytest](https://docs.pytest.org/en/latest/) conventions.
+    and will follow [pytest](https://docs.pytest.org/en/latest/) conventions.
 * Do not use backslashes in the code for line breaker!
 * Line length should be maximum 79 characters!
 * Try to follow this convention for brackets and indentation like in example
     below if the line doesn't fit in 79 chars!  (This makes code much more
     readable):
 * If you are introducing a workaround, follow rules noted in
-  [Tracking of workarounds](./workarounds.md) page.
+    [Tracking of workarounds](./workarounds.md) page.
 * We use [black](https://black.readthedocs.io/en/stable/index.html) in our pre-commit hooks
-  to automatically format code before it hits code review. Our PR checks are also using
-  black to verify that code that has made it to review complies with our guidelines. If
-  black will take any action on the code (if reformatting is necessary) then the PR check
-  will fail.
+    to automatically format code before it hits code review. Our PR checks are also using
+    black to verify that code that has made it to review complies with our guidelines. If
+    black will take any action on the code (if reformatting is necessary) then the PR check
+    will fail.
 
 ```python
 def function(
