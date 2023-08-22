@@ -2408,6 +2408,11 @@ def javasdk_pod_fixture(request, scope_name):
     ), "Failed to copy java source code!!"
 
     def _javas3_pod_cleanup():
+        log.warning("########## DEBUG ### starting sleep 9999 ########")
+        try:
+            run_cmd("sleep 9999", timeout=9999)
+        except Exception:
+            pass
         javas3_pod_obj.delete()
 
     request.addfinalizer(_javas3_pod_cleanup)
