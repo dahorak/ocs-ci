@@ -23,6 +23,9 @@
 # ## not implemented ###############
 # tests/manage/pv_services/test_pvc_delete_verify_size_is_returned_to_backendpool.py
 #     test_pvc_delete_and_verify_size_is_returned_to_backend_pool
+#   - there is an issue with CephBlockPool variant with access mode RWO with and retain policy Retain
+#       where the consumed space is not properly released (based on discussion with Sidhant,
+#       it is an issue in ocs-ci code
 
 # 1. Create PVCs according to this table:
 #   Type                        RWO    RWX  Recliam policy
@@ -208,6 +211,8 @@ class TestPvcAcceptance(ManageTest):
         for test_variant in test_variants:
             test_variant.check_pod_running_on_selected_node()
 
+        PvcAcceptance.fetch_used_size_before_io()
+
         for test_variant in test_variants:
             test_variant.run_io_on_first_pod()
 
@@ -221,6 +226,8 @@ class TestPvcAcceptance(ManageTest):
         for test_variant in test_variants:
             if test_variant.access_mode == constants.ACCESS_MODE_RWX:
                 test_variant.get_iops_from_second_pod()
+
+        PvcAcceptance.fetch_used_size_after_io()
 
         for test_variant in test_variants:
             if test_variant.access_mode == constants.ACCESS_MODE_RWO:
@@ -292,6 +299,8 @@ class TestPvcAcceptance(ManageTest):
         for test_variant in test_variants:
             if test_variant.reclaim_policy == constants.RECLAIM_POLICY_RETAIN:
                 test_variant.wait_for_pv_delete()
+
+        PvcAcceptance.fetch_used_size_after_deletion()
 
     def verify_access_token_notin_odf_pod_logs(self):
         """
@@ -790,3 +799,78 @@ class PvcAcceptance:
             raise UnexpectedBehaviour(
                 f"Failure string {failure_str} is not found in oc describe" f" command"
             )
+
+    @classmethod
+    def fetch_used_size_before_io(cls):
+        """
+        get used size on the backend pool
+        """
+        logger.warning(
+            "##################################################################################"
+        )
+        logger.info(f"Default Ceph Block pool: {cls.cbp_name}")
+        logger.warning(
+            "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>"
+        )
+        used_before_io = helpers.fetch_used_size(cls.cbp_name)
+        logger.warning(
+            "##################################################################################"
+        )
+        logger.info(f"Used before IO {used_before_io}")
+        logger.warning(
+            "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>"
+        )
+
+    @classmethod
+    def fetch_used_size_after_io(cls):
+        """
+        get used size on the backend pool
+        """
+        used_after_io = helpers.fetch_used_size(cls.cbp_name)
+        logger.warning(
+            "##################################################################################"
+        )
+        logger.info(f"Used space after IO {used_after_io}")
+        logger.warning(
+            "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>"
+        )
+
+    @classmethod
+    def fetch_used_size_after_deletion(cls):
+        """
+        get used size on the backend pool
+        """
+        used_after_io = helpers.fetch_used_size(cls.cbp_name)
+        logger.warning(
+            "##################################################################################"
+        )
+        logger.info(f"Used space after deleting PVC {used_after_io}")
+        logger.warning(
+            "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>"
+        )
+
+
+#
+# while true; do date; jq -n "$(oc -n openshift-storage rsh \
+#   $(oc get pods -n openshift-storage -o name | grep tools) \
+#   rados df -p ocs-storagecluster-cephblockpool --format json | \
+#   jq .pools[0].size_kb )/1024/1024*10000|round/10000" ; sleep 30; done
+#
+# while true; do date; oc -n openshift-storage rsh \
+#   $(oc get pods -n openshift-storage -o name | grep tools) \
+#   rados df -p ocs-storagecluster-cephblockpool; echo ;sleep 60; done
+#
+# while true; do date; oc -n openshift-storage rsh \
+#   $(oc get pods -n openshift-storage -o name | grep tools) \
+#   rados ls -p ocs-storagecluster-cephblockpool | wc -l ; echo ;sleep 60; done
+#
+# while true; do date ; oc get persistentvolume | grep -e NAME -e test ; echo ; sleep 60; done
+#
+# while true; do date ; oc get persistentvolumeclaims -A | grep test ; echo ; sleep 60; done
+#
+# while true; do date ; oc get storageclasses.storage.k8s.io ; echo ; sleep 60; done
+#
+# while true; do date; oc -n openshift-storage rsh \
+#   $(oc get pods -n openshift-storage -o name | grep tools) \
+#   ceph df; echo ;sleep 60; done
+#
