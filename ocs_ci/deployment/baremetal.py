@@ -54,6 +54,13 @@ class BMBaseOCPDeployment(BaseOCPDeployment):
         super().__init__()
         self.bm_config = config.ENV_DATA["baremetal"]
         self.srv_details = config.ENV_DATA["baremetal"]["servers"]
+        # create connection to Provisioner server (the Bootstrap VM for IPI deployment and VM with DHCP and HTTP
+        # services for UPI deployment are hosted on this server)
+        self.provisioner = Connection(
+            host=self.bm_config["bm_provisioner"],
+            user=self.bm_config["bm_provisioner_user"],
+            private_key=os.path.expanduser(config.DEPLOYMENT["ssh_key_private"]),
+        )
 
     def deploy_prereq(self):
         """
@@ -138,6 +145,42 @@ class BMBaseOCPDeployment(BaseOCPDeployment):
             result == constants.BM_STATUS_RESPONSE_UPDATED
         ), "Failed to update request"
 
+    def start_dnsmasq_service_on_helper_vm(self):
+        """
+        Start dnsmasq service providing DHCP and TFTP services for UPI deployment
+        """
+        cmd = "systemctl start dnsmasq"
+        self.helper_node_handler.exec_cmd(cmd)
+
+    def stop_dnsmasq_service_on_helper_vm(self):
+        """
+        Stop dnsmasq service providing DHCP and TFTP services for UPI deployment
+        """
+        cmd = "systemctl stop dnsmasq"
+        self.helper_node_handler.exec_cmd(cmd)
+
+    def start_helper_node_vm(self):
+        """
+        Start helper VM hosting httpd, tftp and dhcp server for UPI deployment
+        """
+        # start odf-bm-upi-tools VM (dhcp and http services) on provisioner (if not running)
+        bm_httpd_server_vm = config.ENV_DATA["baremetal"]["bm_httpd_server_vm"]
+        cmd = f"virsh dominfo {bm_httpd_server_vm} || virsh start {bm_httpd_server_vm}"
+        self.provisioner.exec_cmd(cmd=cmd)
+
+    def stop_helper_node_vm(self):
+        """
+        Stop helper VM hosting httpd, tftp and dhcp server for UPI deployment
+        (the VM should be stopped during IPI deployment to not interfere with bootstrap VM
+        created by the openshift installer)
+        """
+        # start odf-bm-upi-tools VM (dhcp and http services) on provisioner (if not running)
+        bm_httpd_server_vm = config.ENV_DATA["baremetal"]["bm_httpd_server_vm"]
+        cmd = (
+            f"virsh dominfo {bm_httpd_server_vm} && virsh shutdown {bm_httpd_server_vm}"
+        )
+        self.provisioner.exec_cmd(cmd=cmd)
+
 
 class BAREMETALUPI(BAREMETALBASE):
     """
@@ -158,6 +201,7 @@ class BAREMETALUPI(BAREMETALBASE):
             Pre-Requisites for Bare Metal UPI Deployment
             """
             super(BAREMETALUPI.OCPDeployment, self).deploy_prereq()
+            self.start_dnsmasq_service_on_helper_vm()
             # create manifest
             self.create_manifest()
             # create chrony resource
@@ -731,6 +775,7 @@ class BAREMETALIPI(BAREMETALBASE):
             Pre-Requisites for Bare Metal IPI Deployment
             """
             super().deploy_prereq()
+            self.stop_dnsmasq_service_on_helper_vm()
 
         def create_config(self):
             """
@@ -762,23 +807,23 @@ class BAREMETALIPI(BAREMETALBASE):
             # find boostrap machine
             bm = [
                 key
-                for key in self.mgmt_details
-                if self.mgmt_details[key].get("role") == constants.BOOTSTRAP_MACHINE
+                for key in self.srv_details
+                if self.srv_details[key].get("role") == constants.BOOTSTRAP_MACHINE
             ][0]
 
             install_config_obj["platform"]["baremetal"][
                 "bootstrapExternalStaticIP"
-            ] = self.mgmt_details[bm]["ip"]
+            ] = self.srv_details[bm]["ip"]
             install_config_obj["platform"]["baremetal"][
                 "bootstrapExternalStaticGateway"
-            ] = self.mgmt_details[bm]["gw"]
+            ] = self.srv_details[bm]["gw"]
 
             install_config_obj["platform"]["baremetal"]["hosts"] = []
             # add master nodes
             master_nodes = [
                 key
-                for key in self.mgmt_details
-                if self.mgmt_details[key].get("role") == constants.MASTER_MACHINE
+                for key in self.srv_details
+                if self.srv_details[key].get("role") == constants.MASTER_MACHINE
             ]
             if len(master_nodes) < int(config.ENV_DATA["master_replicas"]):
                 raise ConfigurationError(
@@ -792,21 +837,21 @@ class BAREMETALIPI(BAREMETALBASE):
                         "role": "master",
                         "bmc": {
                             "address": self.bmc_address(master_nodes[i]),
-                            "username": self.mgmt_details[master_nodes[i]][
+                            "username": self.srv_details[master_nodes[i]][
                                 "mgmt_username"
                             ],
-                            "password": self.mgmt_details[master_nodes[i]][
+                            "password": self.srv_details[master_nodes[i]][
                                 "mgmt_password"
                             ],
                         },
-                        "bootMACAddress": self.mgmt_details[master_nodes[i]]["mac"],
+                        "bootMACAddress": self.srv_details[master_nodes[i]]["mac"],
                     }
                 )
             # add worker nodes
             worker_nodes = [
                 key
-                for key in self.mgmt_details
-                if self.mgmt_details[key].get("role") == constants.WORKER_MACHINE
+                for key in self.srv_details
+                if self.srv_details[key].get("role") == constants.WORKER_MACHINE
             ]
             if len(worker_nodes) < int(config.ENV_DATA["worker_replicas"]):
                 raise ConfigurationError(
@@ -820,15 +865,15 @@ class BAREMETALIPI(BAREMETALBASE):
                         "role": "worker",
                         "bmc": {
                             "address": self.bmc_address(worker_nodes[i]),
-                            "username": self.mgmt_details[worker_nodes[i]][
+                            "username": self.srv_details[worker_nodes[i]][
                                 "mgmt_username"
                             ],
-                            "password": self.mgmt_details[worker_nodes[i]][
+                            "password": self.srv_details[worker_nodes[i]][
                                 "mgmt_password"
                             ],
                             "disableCertificateVerification": True,
                         },
-                        "bootMACAddress": self.mgmt_details[worker_nodes[i]]["mac"],
+                        "bootMACAddress": self.srv_details[worker_nodes[i]]["mac"],
                     }
                 )
 
@@ -858,7 +903,7 @@ class BAREMETALIPI(BAREMETALBASE):
             """
             return (
                 "idrac-virtualmedia://"
-                "{self.mgmt_details[machine]]['mgmt_console']}"
+                "{self.srv_details[machine]]['mgmt_console']}"
                 "/redfish/v1/Systems/System.Embedded.1"
             )
 
