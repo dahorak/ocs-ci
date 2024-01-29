@@ -62,6 +62,7 @@ class BMBaseOCPDeployment(BaseOCPDeployment):
             user=self.bm_config["bm_provisioner_user"],
             private_key=os.path.expanduser(config.DEPLOYMENT["ssh_key_private"]),
         )
+        self.aws = aws.AWS()
 
     def deploy_prereq(self):
         """
@@ -82,6 +83,7 @@ class BMBaseOCPDeployment(BaseOCPDeployment):
         assert (
             result == constants.BM_STATUS_RESPONSE_UPDATED
         ), "Failed to update request"
+        self.connect_to_helper_node()
 
     def check_bm_status_exist(self):
         """
@@ -182,6 +184,20 @@ class BMBaseOCPDeployment(BaseOCPDeployment):
         )
         self.provisioner.exec_cmd(cmd=cmd)
 
+    # the VM hosting the httpd, tftp and dhcp services might be just started and it might take some time to
+    # propagate the DDNS name, so re-trying this function for 20 minutes
+    @retry((TimeoutError, socket.gaierror), tries=10, delay=120, backoff=1)
+    def connect_to_helper_node(self):
+        """
+        Create connection to helper node hosting httpd, tftp and dhcp services
+        """
+        self.host = self.bm_config["bm_httpd_server"]
+        self.user = self.bm_config["bm_httpd_server_user"]
+        self.private_key = os.path.expanduser(config.DEPLOYMENT["ssh_key_private"])
+
+        # wait till the server is up and running
+        self.helper_node_handler = Connection(self.host, self.user, self.private_key)
+
 
 class BAREMETALUPI(BAREMETALBASE):
     """
@@ -195,7 +211,6 @@ class BAREMETALUPI(BAREMETALBASE):
     class OCPDeployment(BMBaseOCPDeployment):
         def __init__(self):
             super().__init__()
-            self.aws = aws.AWS()
 
         def deploy_prereq(self):
             """
@@ -405,22 +420,6 @@ class BAREMETALUPI(BAREMETALBASE):
             assert self.helper_node_handler.exec_cmd(
                 cmd=cmd
             ), "Failed to create required folder"
-
-        # the VM hosting the httpd, tftp and dhcp services might be just started and it might take some time to
-        # propagate the DDNS name, so re-trying this function for 20 minutes
-        @retry((TimeoutError, socket.gaierror), tries=10, delay=120, backoff=1)
-        def connect_to_helper_node(self):
-            """
-            Create connection to helper node hosting httpd, tftp and dhcp services
-            """
-            self.host = self.bm_config["bm_httpd_server"]
-            self.user = self.bm_config["bm_httpd_server_user"]
-            self.private_key = os.path.expanduser(config.DEPLOYMENT["ssh_key_private"])
-
-            # wait till the server is up and running
-            self.helper_node_handler = Connection(
-                self.host, self.user, self.private_key
-            )
 
         def deploy(self, log_cli_level="DEBUG"):
             """
