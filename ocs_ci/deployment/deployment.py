@@ -4,6 +4,7 @@ platforms like AWS, VMWare, Baremetal etc.
 """
 
 from copy import deepcopy
+import ipaddress
 import json
 import logging
 import os
@@ -107,6 +108,8 @@ from ocs_ci.ocs.utils import (
 from ocs_ci.utility.deployment import (
     create_external_secret,
     get_and_apply_icsp_from_catalog,
+    get_coredns_container_image,
+    get_ocp_release_image_from_running_cluster,
 )
 from ocs_ci.utility.flexy import load_cluster_info
 from ocs_ci.utility import (
@@ -1611,6 +1614,78 @@ class Deployment(object):
                 command=f"annotate namespace {config.ENV_DATA['cluster_namespace']} "
                 f"{constants.NODE_SELECTOR_ANNOTATION}"
             )
+
+        # Access buckets with DNS subdomain style (Virtual host style) for RGW
+        self.configure_virtual_host_style_acess_for_rgw()
+
+    def configure_virtual_host_style_acess_for_rgw(self):
+        """
+        Enable access buckets with DNS subdomain style (Virtual host style) for RGW
+        """
+        if not config.DEPLOYMENT.get("rgw_enable_virtual_host_style_access"):
+            logging.info(
+                "Skipping configuration of access buckets with DNS subdomain style (Virtual host style) for RGW "
+                "because DEPLOYMENT.rgw_enable_virtual_host_style_access is set to false."
+            )
+            return
+        if config.ENV_DATA.get("platform") not in constants.ON_PREM_PLATFORMS:
+            logging.info(
+                "Skipping configuration of access buckets with DNS subdomain style (Virtual host style) for RGW "
+                f"because {config.ENV_DATA.get('platform')} platform is not between {constants.ON_PREM_PLATFORMS}"
+            )
+            return
+        logging.info(
+            "Configuring access buckets with DNS subdomain style (Virtual host style) for RGW"
+        )
+
+        release_image = get_ocp_release_image_from_running_cluster()
+        pull_secret_path = os.path.join(constants.DATA_DIR, "pull-secret")
+        coredns_image = get_coredns_container_image(release_image, pull_secret_path)
+        coredns_deployment = templating.load_yaml(constants.COREDNS_DEPLOYMENT_YAML)
+        coredns_deployment["spec"]["template"]["spec"]["containers"][0][
+            "image"
+        ] = coredns_image
+        coredns_deployment_yaml = tempfile.NamedTemporaryFile(
+            mode="w+", prefix="coredns_deployment", suffix=".yaml", delete=False
+        )
+        templating.dump_data_to_temp_yaml(
+            coredns_deployment, coredns_deployment_yaml.name
+        )
+
+        logger.info("Creating ConfigMap for CoreDNS")
+        exec_cmd(f"oc create -f {constants.COREDNS_CONFIGMAP_YAML}")
+        logger.info("Creating CoreDNS Deployment")
+        exec_cmd(f"oc create -f {coredns_deployment_yaml.name}")
+        logger.info("Creating CoreDNS Service")
+        exec_cmd(f"oc create -f {constants.COREDNS_SERVICE_YAML}")
+        # get dns ip
+        dns_ip = exec_cmd(
+            f"oc get -n {self.namespace} svc odf-dns -ojsonpath={{..clusterIP}}"
+        ).stdout.decode()
+        try:
+            ipaddress.IPv4Address(dns_ip)
+        except ipaddress.AddressValueError:
+            logger.error("Failed to obtain IP of odf-dns Service")
+            raise
+        logger.info(
+            f"Patching dns.operator/default to forward 'data.local' zone to {dns_ip}:53 (odf-dns Service)"
+        )
+        exec_cmd(
+            "oc patch dns.operator/default --type=merge --patch '"
+            '{"spec":{"servers":[{"forwardPlugin":{"upstreams":["'
+            f"{dns_ip}:53"
+            '"]},"name":"rook-dns","zones":["data.local"]'
+            "}]}}'"
+        )
+        logger.info(
+            "Patching storagecluster/ocs-storagecluster to allow virtualHostnames"
+        )
+        exec_cmd(
+            "oc patch -n openshift-storage storagecluster/ocs-storagecluster --type=merge --patch '"
+            '{"spec":{"managedResources":{"cephObjectStores":{"virtualHostnames":'
+            '["rgw.data.local","rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc"]'
+            "}}}}'"
+        )
 
     def cleanup_pgsql_db(self):
         """
