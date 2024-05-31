@@ -1685,7 +1685,7 @@ class Deployment(object):
         exec_cmd(
             "oc patch -n openshift-storage storagecluster/ocs-storagecluster --type=merge --patch '"
             '{"spec":{"managedResources":{"cephObjectStores":{"virtualHostnames":'
-            '["rgw.data.local","rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc"]'
+            '["rgw.data.local"]'
             "}}}}'"
         )
         # Restart rook-ceph-operator pod, not sure if this is required step or just workaround
