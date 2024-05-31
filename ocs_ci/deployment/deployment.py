@@ -86,6 +86,8 @@ from ocs_ci.ocs.resources.pod import (
     validate_pods_are_respinned_and_running_state,
     get_pods_having_label,
     get_pod_count,
+    get_operator_pods,
+    delete_pods,
 )
 from ocs_ci.ocs.resources.storage_cluster import (
     ocs_install_verification,
@@ -1686,6 +1688,21 @@ class Deployment(object):
             '["rgw.data.local","rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc"]'
             "}}}}'"
         )
+        # Restart rook-ceph-operator pod, not sure if this is required step or just workaround
+        logger.info("Restarting rook-ceph-operator pod")
+        rook_ceph_operator_pods = get_operator_pods()
+        delete_pods(rook_ceph_operator_pods, wait=True)
+        # wait for rook-ceph-operator pod starts
+        pod_obj = OCP(
+            kind=constants.POD, namespace=config.ENV_DATA["cluster_namespace"]
+        )
+        pod_obj.wait_for_resource(
+            condition=constants.STATUS_RUNNING,
+            selector=constants.OPERATOR_LABEL,
+            timeout=300,
+            sleep=5,
+        )
+        logger.info("Pod rook-ceph-operator were successfully restarted")
 
     def cleanup_pgsql_db(self):
         """
