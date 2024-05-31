@@ -1625,18 +1625,18 @@ class Deployment(object):
         Enable access buckets with DNS subdomain style (Virtual host style) for RGW
         """
         if not config.DEPLOYMENT.get("rgw_enable_virtual_host_style_access"):
-            logging.info(
+            logger.info(
                 "Skipping configuration of access buckets with DNS subdomain style (Virtual host style) for RGW "
                 "because DEPLOYMENT.rgw_enable_virtual_host_style_access is set to false."
             )
             return
         if config.ENV_DATA.get("platform") not in constants.ON_PREM_PLATFORMS:
-            logging.info(
+            logger.info(
                 "Skipping configuration of access buckets with DNS subdomain style (Virtual host style) for RGW "
                 f"because {config.ENV_DATA.get('platform')} platform is not between {constants.ON_PREM_PLATFORMS}"
             )
             return
-        logging.info(
+        logger.info(
             "Configuring access buckets with DNS subdomain style (Virtual host style) for RGW"
         )
 
