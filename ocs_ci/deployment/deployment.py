@@ -1617,9 +1617,6 @@ class Deployment(object):
                 f"{constants.NODE_SELECTOR_ANNOTATION}"
             )
 
-        # Access buckets with DNS subdomain style (Virtual host style) for RGW
-        self.configure_virtual_host_style_acess_for_rgw()
-
     def configure_virtual_host_style_acess_for_rgw(self):
         """
         Enable access buckets with DNS subdomain style (Virtual host style) for RGW
@@ -2021,6 +2018,9 @@ class Deployment(object):
                         namespace=constants.OPENSHIFT_STORAGE_EXTENDED_NAMESPACE,
                     )
                 )
+
+            # Access buckets with DNS subdomain style (Virtual host style) for RGW
+            self.configure_virtual_host_style_acess_for_rgw()
 
         wait_timeout_for_healthy_osd_in_minutes = config.ENV_DATA.get(
             "wait_timeout_for_healthy_osd_in_minutes"
