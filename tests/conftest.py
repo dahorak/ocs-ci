@@ -114,7 +114,9 @@ from ocs_ci.utility import (
     users,
     version,
 )
-from ocs_ci.utility.deployment import configure_virtual_host_style_acess_for_rgw
+from ocs_ci.deployment.helpers.odf_deployment_helpers import (
+    configure_virtual_host_style_acess_for_rgw,
+)
 from ocs_ci.utility.environment_check import (
     get_status_before_execution,
     get_status_after_execution,
