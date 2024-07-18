@@ -227,9 +227,9 @@ class TestNfsEnable(ManageTest):
         Create connection to NFS Client VM.
         """
         log.info("Connecting to nfs client test VM")
-        tries = 3 if retry else 1
+        # tries = 3 if retry else 1
 
-        @retry((TimeoutError, socket.gaierror), tries=tries, delay=60, backoff=1)
+        @retry((TimeoutError, socket.gaierror), tries=1, delay=60, backoff=1)
         def __make_connection():
             return Connection(
                 self.nfs_client_ip,
