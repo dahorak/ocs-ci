@@ -206,6 +206,7 @@ class TestNfsEnable(ManageTest):
             not hasattr(self, "__nfs_client_connection")
             or not self.__nfs_client_connection
         ):
+            log.info("Creating connection to NFS Client")
             try:
                 self.__nfs_client_connection = self.get_nfs_client_connection(
                     retry=False
@@ -218,6 +219,7 @@ class TestNfsEnable(ManageTest):
 
                 time.sleep(60)
                 self.__nfs_client_connection = self.get_nfs_client_connection()
+        log.info("Returning connection to NFS Client")
         return self.__nfs_client_connection
 
     def get_nfs_client_connection(self, retry=True):
