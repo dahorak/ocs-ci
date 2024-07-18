@@ -209,7 +209,7 @@ class TestNfsEnable(ManageTest):
             log.info("Creating connection to NFS Client")
             try:
                 self.__nfs_client_connection = self.get_nfs_client_connection(
-                    retry=False
+                    re_try=False
                 )
             except (TimeoutError, socket.gaierror):
                 nfs_client_vm_cloud = config.ENV_DATA.get("nfs_client_vm_cloud")
@@ -222,14 +222,14 @@ class TestNfsEnable(ManageTest):
         log.info("Returning connection to NFS Client")
         return self.__nfs_client_connection
 
-    def get_nfs_client_connection(self, retry=True):
+    def get_nfs_client_connection(self, re_try=True):
         """
         Create connection to NFS Client VM.
         """
         log.info("Connecting to nfs client test VM")
-        # tries = 3 if retry else 1
+        tries = 3 if re_try else 1
 
-        @retry((TimeoutError, socket.gaierror), tries=1, delay=60, backoff=1)
+        @retry((TimeoutError, socket.gaierror), tries=tries, delay=60, backoff=1)
         def __make_connection():
             return Connection(
                 self.nfs_client_ip,
