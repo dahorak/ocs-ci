@@ -207,7 +207,9 @@ class TestNfsEnable(ManageTest):
             or not self.__nfs_client_connection
         ):
             try:
-                self.__nfs_client_connection = self.get_nfs_client_connection()
+                self.__nfs_client_connection = self.get_nfs_client_connection(
+                    retry=False
+                )
             except (TimeoutError, socket.gaierror):
                 nfs_client_vm_cloud = config.ENV_DATA.get("nfs_client_vm_cloud")
                 nfs_client_vm_name = config.ENV_DATA.get("nfs_client_vm_name")
@@ -218,17 +220,22 @@ class TestNfsEnable(ManageTest):
                 self.__nfs_client_connection = self.get_nfs_client_connection()
         return self.__nfs_client_connection
 
-    @retry((TimeoutError, socket.gaierror), tries=10, delay=60, backoff=1)
-    def get_nfs_client_connection(self):
+    def get_nfs_client_connection(self, retry=True):
         """
         Create connection to NFS Client VM.
         """
-        log.info("Login to test vm")
-        return Connection(
-            self.nfs_client_ip,
-            self.nfs_client_user,
-            private_key=self.nfs_client_private_key,
-        )
+        log.info("Connecting to nfs client test VM")
+        tries = 3 if retry else 1
+
+        @retry((TimeoutError, socket.gaierror), tries=tries, delay=60, backoff=1)
+        def __make_connection():
+            return Connection(
+                self.nfs_client_ip,
+                self.nfs_client_user,
+                private_key=self.nfs_client_private_key,
+            )
+
+        return __make_connection()
 
     @tier1
     @polarion_id("OCS-4269")
