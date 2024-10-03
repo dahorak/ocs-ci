@@ -8398,3 +8398,9 @@ def setup_cnv(request):
             cnv_obj.uninstall_cnv()
 
     request.addfinalizer(finalizer)
+
+
+@pytest.fixture(scope="session")
+def virtctl_binary():
+    cnv_obj = CNVInstaller()
+    cnv_obj.download_and_extract_virtctl_binary()
