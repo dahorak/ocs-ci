@@ -386,6 +386,7 @@ def mirror_index_image_via_oc_mirror(index_image, packages, icsp=None, idms=None
             f"{mirroring_manifests_dir}",
             "mapping.txt",
         )
+        mirror_images_from_mapping_file(mapping_file, icsp=icsp)
 
     if idms:
         cmd += " --dry-run"
@@ -405,7 +406,7 @@ def mirror_index_image_via_oc_mirror(index_image, packages, icsp=None, idms=None
         with open(mapping_file, "w") as file:
             file.writelines(updated_lines)
 
-    mirror_images_from_mapping_file(mapping_file, idms=idms)
+        mirror_images_from_mapping_file(mapping_file, idms=idms)
 
     # # create ImageContentSourcePolicy
     # icsp_file = os.path.join(
