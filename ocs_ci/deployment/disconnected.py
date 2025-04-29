@@ -344,20 +344,19 @@ def mirror_index_image_via_oc_mirror(index_image, packages, icsp=None, idms=None
     )
     if icsp:
         cmd += " --continue-on-error --skip-missing"
-    if idms:
-        # updating the config file to work with oc-mirror v2
-        with open(imageset_config_file, "r") as f:
-            lines = f.readlines()
-            lines[0] = "apiVersion: mirror.openshift.io/v2alpha1\n"
-            lines.index("storageConfig:\n")
-            lines = lines[:14]
-        with open(imageset_config_file, "w") as f:
-            f.writelines(lines)
-        cmd = (
-            f"oc mirror --config {imageset_config_file} "
-            f"docker://{config.DEPLOYMENT['mirror_registry']} "
-            "--workspace file://oc-mirror-workspace/results-files --v2"
-        )
+    # updating the config file to work with oc-mirror v2
+    with open(imageset_config_file, "r") as f:
+        lines = f.readlines()
+        lines[0] = "apiVersion: mirror.openshift.io/v2alpha1\n"
+        lines.index("storageConfig:\n")
+        lines = lines[:14]
+    with open(imageset_config_file, "w") as f:
+        f.writelines(lines)
+    cmd = (
+        f"oc mirror --config {imageset_config_file} "
+        f"docker://{config.DEPLOYMENT['mirror_registry']} "
+        "--workspace file://oc-mirror-workspace/results-files --v2"
+    )
     try:
         exec_cmd(cmd, timeout=18000)
     except CommandFailed:
@@ -439,20 +438,12 @@ def mirror_index_image_via_oc_mirror(index_image, packages, icsp=None, idms=None
     wait_for_machineconfigpool_status("all")
 
     # get mirrored index image url from prepared catalogSource file
-    if idms:
-        cs_file = glob.glob(
-            os.path.join(
-                f"{mirroring_manifests_dir}",
-                "working-dir/cluster-resources/cs*.yaml",
-            )
+    cs_file = glob.glob(
+        os.path.join(
+            f"{mirroring_manifests_dir}",
+            "working-dir/cluster-resources/cs*.yaml",
         )
-    else:
-        cs_file = glob.glob(
-            os.path.join(
-                f"{mirroring_manifests_dir}",
-                "cs-*.yaml",
-            )
-        )
+    )
     if not cs_file:
         raise NotFoundError(
             "CatalogSource file not found in the '{mirroring_manifests_dir}'."
