@@ -2354,6 +2354,8 @@ DISCON_CL_REQUIRED_PACKAGES_PER_ODF_VERSION[
 ] = DISCON_CL_REQUIRED_PACKAGES_PER_ODF_VERSION["4.16"] + [
     "odf-dependencies",
     "ocs-client-operator",
+    "odr-cluster-operator",
+    "odr-hub-operator",
 ]
 
 DISCON_CL_REQUIRED_PACKAGES_PER_ODF_VERSION["4.19"] = [
