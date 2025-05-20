@@ -2339,6 +2339,7 @@ DISCON_CL_REQUIRED_PACKAGES_PER_ODF_VERSION["4.16"] = [
     "ocs-client-operator",
     "odf-prometheus-operator",
     "recipe",
+    "rook-ceph-operator",
     "odr-cluster-operator",
     "odr-hub-operator",
 ]
