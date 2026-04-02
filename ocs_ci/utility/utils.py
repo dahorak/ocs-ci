@@ -1336,6 +1336,10 @@ def get_openshift_client(version=None, bin_dir=None, force_download=False):
     use_system_available_oc_client = config.RUN.get(
         "use_system_available_oc_client", False
     )
+    log.info(f"DEBUG: client_binary_path: {client_binary_path}")
+    log.info(f"DEBUG: kubectl_binary_path: {kubectl_binary_path}")
+    log.info(f"DEBUG: client_exist: {client_exist}")
+    log.info(f"DEBUG: use_system_available_oc_client: {use_system_available_oc_client}")
     if use_system_available_oc_client and not client_exist:
         if use_system_available_client_and_kubectl(
             client_binary_path, kubectl_binary_path
