@@ -7637,8 +7637,14 @@ def create_kubeconfig(kubeconfig_path):
 
         kubeconfig_dir = os.path.dirname(kubeconfig_path)
         os.makedirs(kubeconfig_dir, exist_ok=True)
-        cmd = f"oc config new-admin-kubeconfig > {kubeconfig_path}"
-        result = exec_cmd(cmd, shell=True, ignore_error=True)
+        # Capture the output in Python instead of shell-redirecting it
+        # (`> {kubeconfig_path}`) directly to kubeconfig_path. The shell
+        # truncates the redirection target before `oc` starts, and since
+        # KUBECONFIG also points at kubeconfig_path, `oc` would read an
+        # already-emptied file and silently fall back to the in-cluster
+        # service account instead of the intended cluster.
+        cmd = "oc config new-admin-kubeconfig"
+        result = exec_cmd(cmd, ignore_error=True)
         if result.returncode:
             log.warning(f"executed command: {cmd}")
             log.warning(f"returncode: {result.returncode}")
@@ -7648,6 +7654,8 @@ def create_kubeconfig(kubeconfig_path):
                 f"Failed to create permanent kubeconfig at {kubeconfig_path}"
             )
         else:
+            with open(kubeconfig_path, "wb") as fd:
+                fd.write(result.stdout)
             log.info(f"Kubeconfig file was created: {kubeconfig_path}.")
         update_kubeconfig_with_proxy_url_for_client(kubeconfig_path)
 
